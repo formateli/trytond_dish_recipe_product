@@ -1,6 +1,10 @@
-
+#This file is part of tryton-dish_recipe project. The COPYRIGHT file at the top level of
+#this repository contains the full copyright notices and license terms
 from trytond.pool import PoolMeta
 from trytond.model import fields
+from trytond.pyson import Bool, Eval, If
+from trytond.exceptions import UserError
+from trytond.i18n import gettext
 
 __all__ = [
         'Recipe',
@@ -34,6 +38,14 @@ class Recipe(metaclass=PoolMeta):
         fields.Many2One('product.uom.category', 'Product Uom Category'),
         'on_change_with_product_uom_category')
 
+    @classmethod
+    def __setup__(cls):
+        super(Recipe, cls).__setup__()
+        cls.components.domain.append(
+                ('product', '!=', Eval('product')),
+            )
+        cls.components.depends += ['product']
+
     @fields.depends('unit')
     def on_change_with_unit_digits(self, name=None):
         if self.unit:
@@ -44,3 +56,19 @@ class Recipe(metaclass=PoolMeta):
     def on_change_with_product_uom_category(self, name=None):
         if self.product:
             return self.product.default_uom_category.id
+
+    @classmethod
+    def validate(cls, recipes):
+        for recipe in recipes:
+            if recipe.product:
+                rcp = cls.search([
+                        ('product', '=', recipe.product.id),
+                        ('id', '!=', recipe.id),
+                    ])
+                if rcp:
+                    raise UserError(
+                        gettext('dish_recipe_product.msg_product_selected',
+                            product=product.rec_name,
+                            recipe=recipe.rec_name,
+                            rcp=rcp.rec_name))
+        super(Recipe, cls).validate(recipes)
