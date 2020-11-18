@@ -1,5 +1,5 @@
-Dish Recipe Product Module
-##########################
+Dish Recipe Product
+###################
 
 Matches a product to a Dish Recipe.
 
